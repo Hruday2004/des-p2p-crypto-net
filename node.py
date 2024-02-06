@@ -1,21 +1,22 @@
 from block import Block
+import numpy as np
 
 class Node:
-    def __init__(self, id, coins, isFast, isHighCPU):
+    def __init__(self, id, coins, isFast, isHighCPU, hashingFraction):
         
         self.id = id
         self.coins = coins
         self.isFast = isFast
         self.isHighCPU = isHighCPU
         self.all_transactions   = []
+        self.hashingFraction = hashingFraction
         
         self.already_in_blockchain_transactions = []
         
         self.blocks = {
-            0 : [Block(0, 0, 0, -1), 0],
+            0 : [Block(0, 0, 0, -1, 0), 0],
         }
         
-        self.longest_blockchain = []
         
     def calculate_longest_blockchain(self):
         
@@ -38,6 +39,9 @@ class Node:
             block_id = self.blocks[block_id][0].prev_block
             
         return long_chain
+    
+    def T_k(self):
+        return np.random.exponential(600000/self.hashingFraction, 1)
         
         
                 

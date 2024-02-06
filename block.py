@@ -1,5 +1,5 @@
 class Block:
-    def __init__(self, id, node_id, creation_time, prev_block):
+    def __init__(self, id, node_id, creation_time, prev_block, length):
         
         self.id = id
         self.node_id = node_id
@@ -7,7 +7,7 @@ class Block:
         
         self.transactions = []
         
-        self.length = 0
+        self.length = length
         
         self.prev_block = prev_block
         

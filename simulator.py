@@ -30,8 +30,11 @@ class Simulator:
         slownodes = int(slowfrac * self.num_nodes)
         lowCPUnodes = int(lowCPUfrac * self.num_nodes)
 
-        l1 = [1]*slownodes + [0]*int(self.num_nodes-slownodes)
-        l2 = [1]*lowCPUnodes + [0]*int(self.num_nodes-lowCPUnodes)
+        l1 = [1]*int(self.num_nodes-slownodes) + [0]*slownodes
+        l2 = [1]*int(self.num_nodes-lowCPUnodes) + [0]*lowCPUnodes
+
+        hashingSum = (self.num_nodes-lowCPUnodes)*10 + lowCPUnodes
+
 
         random.shuffle(l1)
         random.shuffle(l2)
@@ -39,7 +42,11 @@ class Simulator:
         nodes = {}
 
         for i in range(self.num_nodes):
-            nodes[i] = Node(coins=random.randint(0, 10),isFast=l1[i], isHighCPU=l2[i],id=i)
+            hashFrac = 1/hashingSum
+            if l2[i] == 1:
+                hashFrac = 10/hashingSum
+        
+            nodes[i] = Node(coins=random.randint(0, 10),isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
 
         for i in range(self.num_nodes):
             self.p.append([])
@@ -121,6 +128,7 @@ class Simulator:
         dij = np.random.exponential(96/self.c[sender_id][receiver_id], 1)
 
         return self.p[sender_id][receiver_id] + message_length/self.c[sender_id][receiver_id] + dij
+
         
 
         

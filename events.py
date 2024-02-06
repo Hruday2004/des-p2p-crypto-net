@@ -73,24 +73,33 @@ class TransactionRec(Events):
         
         
         
-class BlockAddition(Events):
-    def __init__(self, timeOfexec, creator_id, creation_time, block):
+class BlockGen(Events):
+    def __init__(self, timeOfexec, creator_id, creation_time, prev_last_block):
         super().__init__(creator_id,creator_id,timeOfexec, creation_time)
-        self.block = block
+        self.prev_last_block = prev_last_block
         
     def execute(self,sim):
+        
         
         miner = sim.nodes[self.creator_id]
         new_longest_chain = miner.get_longest_chain()
         
-        if(new_longest_chain[0].id != miner.longest_chain[0].id):
+        if(new_longest_chain[0].id != self.prev_last_block.id):
             return
         
-        miner.longest_chain = new_longest_chain
-        msg_length = 1 + len(self.block.transactions) 
+        # MINING BEGINS 
+        
+        remaining_txns = set(miner.all_transactions) - set(miner.already_in_blockchain_transactions)
+        
+        new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, new_longest_chain[0], new_longest_chain[0].length + 1)
+        new_block.transactions = list(remaining_txns)
+        
+        sim.block_id += 1
+        
+        msg_length = 1 + len(new_block.transactions) 
         
         for i in sim.peers[self.creator_id]:
-            sim.put(BlockRec(self.timeOfexec + sim.delay(msg_length, self.creator_id, i), i, self.creator_id, self.timeOfexec, self.block))
+            sim.put(BlockRec(self.timeOfexec + sim.delay(msg_length, self.creator_id, i), i, self.creator_id, self.timeOfexec, new_block))
 
 class BlockRec(Events):
     def __init__(self, timeOfexec, node_id, creator_id, creation_time, block):
@@ -99,24 +108,27 @@ class BlockRec(Events):
     
     def execute(self,sim):
 
-        if self.block in sim.nodes[self.exec_node_id].all_transactions:
+        if self.block.transactions in sim.nodes[self.exec_node_id].all_transactions:
             return
+        
+    
         
         longest_chain = sim.nodes[self.exec_node_id].calculate_longest_blockchain()
         last_block = longest_chain[0]
-        
-        for i in sim.peers[self.exec_node_id]:
-            if i == self.exec_node_id:
-                continue
-            sim.put(BlockRec(self.timeOfexec + 3 , i, self.creator_id, self.timeOfexec, self.block))
-        
-        new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec,last_block)
 
-        # Add transaction to the block
+        # validate
+        # if valid -- only then send to peers
+        # block gen
+        
 
-        sim.block_id+=1
-            
-        sim.put(BlockAddition())
+        
+        if valid:
+            for i in sim.peers[self.exec_node_id]:
+                if i == self.exec_node_id:
+                    continue
+                sim.put(BlockRec(self.timeOfexec + sim.delay(1+len(self.block.transactions), self.exec_node_id, i) , i, self.creator_id, self.timeOfexec, self.block))
+        
+        sim.events.put(BlockGen(self.timeOfexec + sim.nodes[self.exec_node_id].T_k() , self.exec_node_id , self.timeOfexec, last_block))
 
         
         
