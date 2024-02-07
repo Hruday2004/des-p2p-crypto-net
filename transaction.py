@@ -7,6 +7,7 @@ class Transaction:
         self.coins = coins
 
         self.block_id = None
+
         
     def __repr__(self):
-        return f"TxnID: {self.sender_id} pays {self.receiver_id} {self.coins} coins"
+        return f"TxnID: {self.id} :: {self.sender_id} pays {self.receiver_id} {self.coins} coins"

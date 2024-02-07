@@ -1,5 +1,5 @@
 class Block:
-    def __init__(self, id, node_id, creation_time, prev_block, length):
+    def __init__(self, id, node_id, creation_time, prev_block_id, length):
         
         self.id = id
         self.node_id = node_id
@@ -9,6 +9,6 @@ class Block:
         
         self.length = length
         
-        self.prev_block = prev_block
+        self.prev_block_id = prev_block_id
         
     

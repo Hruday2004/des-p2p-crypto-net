@@ -4,11 +4,11 @@ from node import Node
 from queue import PriorityQueue
 import networkx as nx
 from events import *
+import matplotlib.pyplot as plt
 
 class Simulator:
-    def __init__(self, num_nodes, slowfrac, lowCPUfrac, txnDelay_meantime):
-        self.nodes = self.create_nodes(slowfrac,lowCPUfrac)
-        self.peers = self.create_peers(num_nodes)
+    def __init__(self, num_nodes, slowfrac, lowCPUfrac, txnDelay_meantime, max_sim_time):
+
         self.txnDelay_meantime = txnDelay_meantime
         self.num_nodes = num_nodes
         self.block_id = 1
@@ -18,10 +18,16 @@ class Simulator:
         self.c = []
 
         self.time = 0
+        self.max_sim_time = max_sim_time
 
         self.events = PriorityQueue()
 
+        
+        self.nodes = self.create_nodes(slowfrac,lowCPUfrac)
+        self.peers = self.create_peers(num_nodes)
+
         self.initial_events()
+        
 
     def __str__(self):
         pass
@@ -46,7 +52,7 @@ class Simulator:
             if l2[i] == 1:
                 hashFrac = 10/hashingSum
         
-            nodes[i] = Node(coins=random.randint(0, 10),isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
+            nodes[i] = Node(coins=1000,isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
 
         for i in range(self.num_nodes):
             self.p.append([])
@@ -60,7 +66,7 @@ class Simulator:
 
         return nodes
     def interArrival_txndelay(self):
-        return np.random.exponential(self.txnDelay_meantime, 1)
+        return np.random.exponential(self.txnDelay_meantime, 1)[0]
     
     def create_constrained_graph(self,num_peers):
         """Creates a graph ensuring each node has 3 to 6 connections."""
@@ -111,21 +117,47 @@ class Simulator:
         for node in G.nodes():
             peers[node] = list(G.neighbors(node))
 
+        plt.figure(figsize=(8, 5))
+        nx.draw(G, with_labels=True, node_color='lightgreen', edge_color='gray')
+
+        plt.show()
+        
+
         return peers
           
     def initial_events(self):
         for i in range(self.num_nodes):
-            self.events.put(TransactionGen(self.interArrival_txndelay, i))
+            self.events.put(TransactionGen(self.interArrival_txndelay(), i,0))
         
         for i in range(self.num_nodes):
-            self.events.put(BlockGenReq(,i))
+            self.events.put(BlockGen(self.nodes[i].T_k(),i,0,self.nodes[i].blocks[0][0]))
 
     def run(self):
-        # Time updated as events processed
-        pass
+    
+        while self.time < self.max_sim_time:
+            event = self.events.get()
+            if self.events.qsize() == 0:
+                print("No more events")
+                break
+            self.time = event.timeOfexec
+            event.execute(self)
+
+
+            # print("Time: ",self.time)
+
+        # for i in range(self.num_nodes):
+        #     self.nodes[i].create_chain()
+        for i in range(self.num_nodes):
+            print("Balannce: ", self.nodes[i].coins)
+            print(i," : ",end="")
+            for t in self.nodes[i].already_in_blockchain_transactions:
+                print(t.id,end=', ')
+            print()
+        
+       
     def delay(self, message_length,sender_id,receiver_id):
         
-        dij = np.random.exponential(96/self.c[sender_id][receiver_id], 1)
+        dij = np.random.exponential(96/self.c[sender_id][receiver_id], 1)[0]
 
         return self.p[sender_id][receiver_id] + message_length/self.c[sender_id][receiver_id] + dij
 

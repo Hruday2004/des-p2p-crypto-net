@@ -16,9 +16,12 @@ class Node:
         self.blocks = {
             0 : [Block(0, 0, 0, -1, 0), 0],
         }
+
+        print("Hashing:",self.hashingFraction)
         
         
     def calculate_longest_blockchain(self):
+
         
         max_length = 0
         block_id = 0
@@ -32,16 +35,19 @@ class Node:
                 
         long_chain = [self.blocks[block_id][0]]
         
-        block_id = self.blocks[block_id][0].prev_block
+        block_id = self.blocks[block_id][0].prev_block_id
         
-        while block_id is not None:
+        while block_id != -1:
             long_chain.append(self.blocks[block_id][0])
-            block_id = self.blocks[block_id][0].prev_block
+            block_id = self.blocks[block_id][0].prev_block_id
             
         return long_chain
     
     def T_k(self):
-        return np.random.exponential(600000/self.hashingFraction, 1)
+        return np.random.exponential(600000/self.hashingFraction, 1)[0]
+    
+    def create_chain(self):
+        pass
         
         
                 

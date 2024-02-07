@@ -76,23 +76,46 @@
 #     plt.title(f"Connected Graph with Constraints (Attempts: {attempts_constrained})")
 #     plt.show()
 
-class dummy:
-    def __init__(self,coins):
-        self.coins = coins
+# class dummy:
+#     def __init__(self,coins):
+#         self.coins = coins
 
-l= []
+# l= []
 
-for i in range(6):
-    l.append(dummy(i))
+# for i in range(6):
+#     l.append(dummy(i))
 
-for i in range(6):
-    print(l[i].coins)
+# for i in range(6):
+#     print(l[i].coins)
 
-p = l[3]
-p.coins += 10
+# p = l[3]
+# p.coins += 10
 
-for i in range(6):
-    print(l[i].coins)
+# for i in range(6):
+#     print(l[i].coins)
 
+import matplotlib.pyplot as plt
+import networkx as nx
 
+# Create a graph
+G = nx.DiGraph()
 
+# Add nodes for the blocks with the 'layer' attribute
+blocks = 50  # Number of blocks
+for i in range(blocks):
+    G.add_node(i, label=f"Block {i}", layer=i)  # Add the 'layer' attribute for each node
+
+# Add edges between blocks to represent the chain
+for i in range(1, blocks):
+    G.add_edge(i, i-1)
+
+# Add edges to represent a fork scenario
+G.add_edge(20, 19)
+G.add_edge(20, 18)
+
+# Draw the graph
+pos = nx.multipartite_layout(G, subset_key="layer")
+plt.figure(figsize=(200, 50))
+nx.draw(G, pos, with_labels=True, node_size=3000, node_color="lightblue", font_weight="bold", font_size=10, arrowsize=20)
+#plt.show()
+plt.savefig("out.png",  bbox_inches='tight')
