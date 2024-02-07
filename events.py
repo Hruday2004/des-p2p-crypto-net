@@ -1,6 +1,4 @@
 import random
-
-from aiohttp import TraceDnsCacheHitParams
 from transaction import Transaction
 from block import Block
 
@@ -35,7 +33,7 @@ class TransactionGen(Events):
         if payer.coins == 0:
             return
 
-        amount = random.randint(0,payer.coins)
+        amount = random.randint(0,(payer.coins)//2)
 
         payer.coins = payer.coins - amount
         payee.coins = payee.coins + amount
@@ -107,9 +105,17 @@ class BlockGen(Events):
             return
         
         new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, new_longest_chain[0].id, new_longest_chain[0].length + 1)
-        new_block.transactions = list(remaining_txns)
+        new_block.transactions = list(remaining_txns)[:min(10, len(remaining_txns))]
         miner.coins += 50
-        miner.blocks[sim.block_id] = [new_block,0]
+        miner.blocks[sim.block_id] = [new_block, self.timeOfexec]
+        
+        for l in miner.layers:
+            if new_longest_chain[0].id in miner.layers[l]:
+                if l+1 in miner.layers:
+                    miner.layers[l+1].append(new_block.id)
+                else:
+                    miner.layers[l+1] = [new_block.id]
+                break
         
         print(f"BlockID:{sim.block_id} :: {self.creator_id} mines 50 coins")
         
@@ -140,8 +146,16 @@ class BlockRec(Events):
         
         print(f"3) BlockID: {self.block.id} received at {self.exec_node_id}")
 
-        sim.nodes[self.exec_node_id].blocks[self.block.id] = [self.block, sim.nodes[self.exec_node_id].blocks[self.block.prev_block_id][0].length + 1]
-
+        cur_node = sim.nodes[self.exec_node_id]
+        cur_node.blocks[self.block.id] = [self.block, self.timeOfexec]
+        
+        for l in cur_node.layers:
+            if self.block.prev_block_id in cur_node.layers[l]:
+                if l+1 in cur_node.layers:
+                    cur_node.layers[l+1].append(self.block.id)
+                else:
+                    cur_node.layers[l+1] = [self.block.id]
+                break
         
         longest_chain = sim.nodes[self.exec_node_id].calculate_longest_blockchain()
         last_block = longest_chain[0]

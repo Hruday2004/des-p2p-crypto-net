@@ -52,7 +52,7 @@ class Simulator:
             if l2[i] == 1:
                 hashFrac = 10/hashingSum
         
-            nodes[i] = Node(coins=1000,isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
+            nodes[i] = Node(coins=10,isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
 
         for i in range(self.num_nodes):
             self.p.append([])
@@ -147,12 +147,17 @@ class Simulator:
 
         # for i in range(self.num_nodes):
         #     self.nodes[i].create_chain()
+        # for i in range(self.num_nodes):
+        #     print("Balannce: ", self.nodes[i].coins)
+        #     print(i," : ",end="")
+        #     for t in self.nodes[i].already_in_blockchain_transactions:
+        #         print(t.id,end=', ')
+        #     print()
+            
+        print(self.block_id)
+        print(self.txn_id)
         for i in range(self.num_nodes):
-            print("Balannce: ", self.nodes[i].coins)
-            print(i," : ",end="")
-            for t in self.nodes[i].already_in_blockchain_transactions:
-                print(t.id,end=', ')
-            print()
+            self.nodes[i].create_chain()
         
        
     def delay(self, message_length,sender_id,receiver_id):
