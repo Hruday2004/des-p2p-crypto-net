@@ -11,4 +11,5 @@ class Block:
         
         self.prev_block_id = prev_block_id
         
-    
+    def __repr__(self):
+        return f"block_id: {self.id}, node_id: {self.node_id}, prev_block_id: {self.prev_block_id}, length: {self.length}"

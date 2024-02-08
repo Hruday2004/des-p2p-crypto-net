@@ -28,7 +28,7 @@ class TransactionGen(Events):
         payer = sim.nodes[self.payer_id]
         payee_id, payee = random.choice(list(set(list(sim.nodes.items())) - set([(self.payer_id,payer)])))
 
-        print("chaba")
+        # print("chaba")
 
         if payer.coins == 0:
             return
@@ -92,8 +92,10 @@ class BlockGen(Events):
         new_longest_chain = miner.calculate_longest_blockchain()
 
 
+        # FORK Resolution
         
         if(new_longest_chain[0].id != self.prev_last_block.id):
+            print("Longest chain changed")
             return
         
         # MINING BEGINS 
@@ -105,17 +107,17 @@ class BlockGen(Events):
             return
         
         new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, new_longest_chain[0].id, new_longest_chain[0].length + 1)
-        new_block.transactions = list(remaining_txns)[:min(10, len(remaining_txns))]
+        new_block.transactions = list(remaining_txns)[0: min(999, len(remaining_txns))]
         miner.coins += 50
         miner.blocks[sim.block_id] = [new_block, self.timeOfexec]
         
-        for l in miner.layers:
-            if new_longest_chain[0].id in miner.layers[l]:
-                if l+1 in miner.layers:
-                    miner.layers[l+1].append(new_block.id)
-                else:
-                    miner.layers[l+1] = [new_block.id]
-                break
+        # for l in miner.layers:
+        #     if new_longest_chain[0].id in miner.layers[l]:
+        #         if l+1 in miner.layers:
+        #             miner.layers[l+1].append(new_block.id)
+        #         else:
+        #             miner.layers[l+1] = [new_block.id]
+        #         break
         
         print(f"BlockID:{sim.block_id} :: {self.creator_id} mines 50 coins")
         
@@ -149,15 +151,18 @@ class BlockRec(Events):
         cur_node = sim.nodes[self.exec_node_id]
         cur_node.blocks[self.block.id] = [self.block, self.timeOfexec]
         
-        for l in cur_node.layers:
-            if self.block.prev_block_id in cur_node.layers[l]:
-                if l+1 in cur_node.layers:
-                    cur_node.layers[l+1].append(self.block.id)
-                else:
-                    cur_node.layers[l+1] = [self.block.id]
-                break
+        # for l in cur_node.layers:
+        #     if self.block.prev_block_id in cur_node.layers[l]:
+        #         if l+1 in cur_node.layers:
+        #             cur_node.layers[l+1].append(self.block.id)
+        #         else:
+        #             cur_node.layers[l+1] = [self.block.id]
+        #         break
         
+        
+
         longest_chain = sim.nodes[self.exec_node_id].calculate_longest_blockchain()
+        
         last_block = longest_chain[0]
 
         
