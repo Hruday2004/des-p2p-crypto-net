@@ -1,6 +1,7 @@
 import random
 from transaction import Transaction
 from block import Block
+from copy import deepcopy
 
 class Events:
     def __init__(self, creator_id, exec_node_id, timeOfexec, creation_time):
@@ -28,18 +29,23 @@ class TransactionGen(Events):
         payer = sim.nodes[self.payer_id]
         payee_id, payee = random.choice(list(set(list(sim.nodes.items())) - set([(self.payer_id,payer)])))
 
-        # print("chaba")
+        print(self.timeOfexec, "chaba")
+        t = sim.interArrival_txndelay()
+        #print(f"Created txn to be executed at {self.timeOfexec + t}")
+        #print("length of pq:",sim.events.qsize())
+        sim.events.put(TransactionGen( self.timeOfexec + t, self.payer_id, self.timeOfexec))
+       # print(1, sim.events.qsize())  
 
         if payer.coins == 0:
             return
 
-        amount = random.randint(0,(payer.coins)//2)
+        amount = random.randint(1,1+(payer.coins)//2)
 
         payer.coins = payer.coins - amount
         payee.coins = payee.coins + amount
 
         txn = Transaction(sim.txn_id,self.payer_id,payee_id,amount)
-        print(txn)
+        print(self.timeOfexec, txn)
 
         sim.txn_id+=1
 
@@ -47,10 +53,9 @@ class TransactionGen(Events):
 
         for i in sim.peers[self.payer_id]:
 
-            sim.events.put(TransactionRec(self.timeOfexec + sim.delay(1,self.payer_id,i), i, self.payer_id, self.payer_id, txn,self.creation_time))
+            sim.events.put(TransactionRec(self.timeOfexec + sim.delay(8000,self.payer_id,i), i, self.payer_id, self.payer_id, txn,self.creation_time))
 
-        sim.events.put(TransactionGen( self.timeOfexec + sim.interArrival_txndelay(), self.payer_id, self.timeOfexec))
-        
+           
 
 
 class TransactionRec(Events):
@@ -58,32 +63,32 @@ class TransactionRec(Events):
         super().__init__(creator_id, node_id, timeOfexec, creation_time)
         
         self.receiver_id = node_id
-        self.transaction = txn
+        self.new_transaction = deepcopy(txn)
         self.sender_id = sender_id
         
     def execute(self, sim):
         
         rcvr = sim.nodes[self.receiver_id]
         
-        if self.transaction in rcvr.all_transactions:
+        if self.new_transaction.id in [tx.id for tx in rcvr.all_transactions]:
             return
         
-        rcvr.all_transactions.append(self.transaction)
+        rcvr.all_transactions.append(self.new_transaction)
 
-        print(f"TxnID:{self.transaction.id} received at {self.receiver_id}")
+        #print(self.timeOfexec, f"TxnID:{self.new_transaction.id} received at {self.receiver_id}")
 
 
         
         for i in sim.peers[self.receiver_id]:
-            if i != self.receiver_id or i != self.sender_id:
-                sim.events.put(TransactionRec(self.timeOfexec + sim.delay(1, self.receiver_id, i), i, self.creator_id, self.receiver_id, self.transaction, self.creation_time))
+            if i != self.sender_id:
+                sim.events.put(TransactionRec(self.timeOfexec + sim.delay(8000, self.receiver_id, i), i, self.creator_id, self.receiver_id, self.new_transaction, self.timeOfexec))
         
         
         
 class BlockGen(Events):
     def __init__(self, timeOfexec, creator_id, creation_time, prev_last_block):
         super().__init__(creator_id,creator_id,timeOfexec, creation_time)
-        self.prev_last_block = prev_last_block
+        self.prev_last_block = deepcopy(prev_last_block)
         
     def execute(self,sim):
         
@@ -106,81 +111,74 @@ class BlockGen(Events):
             
             return
         
-        new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, new_longest_chain[0].id, new_longest_chain[0].length + 1)
-        new_block.transactions = list(remaining_txns)[0: min(999, len(remaining_txns))]
+        new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, self.prev_last_block.id, self.prev_last_block.length + 1)
+        new_block.transactions = list(remaining_txns)[0: min(99, len(remaining_txns))]
         miner.coins += 50
         miner.blocks[sim.block_id] = [new_block, self.timeOfexec]
+        miner.already_in_blockchain_transactions += remaining_txns
         
-        # for l in miner.layers:
-        #     if new_longest_chain[0].id in miner.layers[l]:
-        #         if l+1 in miner.layers:
-        #             miner.layers[l+1].append(new_block.id)
-        #         else:
-        #             miner.layers[l+1] = [new_block.id]
-        #         break
         
-        print(f"BlockID:{sim.block_id} :: {self.creator_id} mines 50 coins")
+        print(self.timeOfexec, f"BlockID:{sim.block_id} :: {self.creator_id} mines 50 coins")
         
-        sim.txn_id += 1
         sim.block_id += 1
         
-        msg_length = 1 + len(new_block.transactions) 
+        msg_length = (1 + len(new_block.transactions))*8000
         
         for i in sim.peers[self.creator_id]:
-            sim.events.put(BlockRec(self.timeOfexec + sim.delay(msg_length, self.creator_id, i), i, self.creator_id, self.timeOfexec, new_block))
+            sim.events.put(BlockRec(self.timeOfexec + sim.delay(msg_length, self.creator_id, i), i, self.creator_id, self.creator_id, self.timeOfexec, new_block))
 
 class BlockRec(Events):
-    def __init__(self, timeOfexec, node_id, creator_id, creation_time, block):
+    def __init__(self, timeOfexec, node_id, creator_id, sender_id, creation_time, block):
         super().__init__(creator_id, node_id, timeOfexec, creation_time)
-        self.block = block
+        self.new_block = deepcopy(block)
+        self.sender_id = sender_id
     
     def execute(self,sim):
         
        # print(f"1) BlockID: {self.block.id} received at {self.exec_node_id}")
 
-
-        if self.block.id in list(sim.nodes[self.exec_node_id].blocks.keys()):
+        cur_node = sim.nodes[self.exec_node_id]
+        
+        if self.new_block.id in list(cur_node.blocks.keys()):
             return
         # print(f"2) BlockID: {self.block.id} received at {self.exec_node_id}")
         # print(f"2.1) {self.block.prev_block_id}")
-        if self.block.prev_block_id not in list(sim.nodes[self.exec_node_id].blocks.keys()):
+        if self.new_block.prev_block_id not in list(cur_node.blocks.keys()):
             return
         
-        print(f"3) BlockID: {self.block.id} received at {self.exec_node_id}")
+        #print(f"BlockID: {self.new_block.id} received at {self.exec_node_id}")
 
-        cur_node = sim.nodes[self.exec_node_id]
-        cur_node.blocks[self.block.id] = [self.block, self.timeOfexec]
-        
-        # for l in cur_node.layers:
-        #     if self.block.prev_block_id in cur_node.layers[l]:
-        #         if l+1 in cur_node.layers:
-        #             cur_node.layers[l+1].append(self.block.id)
-        #         else:
-        #             cur_node.layers[l+1] = [self.block.id]
-        #         break
-        
-        
 
-        longest_chain = sim.nodes[self.exec_node_id].calculate_longest_blockchain()
+        cur_node.blocks[self.new_block.id] = [self.new_block, self.timeOfexec]
+        
+        longest_chain = cur_node.calculate_longest_blockchain()
         
         last_block = longest_chain[0]
+        # print("--------------all blocks------------------")
+        # for _, b in cur_node.blocks.items():
+        #     print(b[0])
 
+        # print("---------------longest chain-----------------")
+        # for b in longest_chain:
+        #     print(b)
         
+        #TODO validate the transactions in received block
 
 
         #if self.block in longest_chain:
-        sim.nodes[self.exec_node_id].already_in_blockchain_transactions += self.block.transactions
+        cur_node.already_in_blockchain_transactions += self.new_block.transactions
 
     
         
 
         for i in sim.peers[self.exec_node_id]:
-            if i == self.exec_node_id:
+            if i == self.sender_id:
                 continue
-            sim.events.put(BlockRec(self.timeOfexec + sim.delay(1+len(self.block.transactions), self.exec_node_id, i) , i, self.creator_id, self.timeOfexec, self.block))
+            sim.events.put(BlockRec(self.timeOfexec + sim.delay(8000*(1+len(self.new_block.transactions)), self.exec_node_id, i) , i, self.creator_id, self.exec_node_id, self.timeOfexec, self.new_block))
         
         sim.events.put(BlockGen(self.timeOfexec + sim.nodes[self.exec_node_id].T_k() , self.exec_node_id , self.timeOfexec, last_block))
-
+        # print(self.timeOfexec, f"BlockID: {self.new_block.id} received at {self.exec_node_id}")
+        # print(f"Blockgen event initiated: {last_block.id}")
         
         
 

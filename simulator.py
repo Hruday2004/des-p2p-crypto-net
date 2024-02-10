@@ -52,17 +52,19 @@ class Simulator:
             if l2[i] == 1:
                 hashFrac = 10/hashingSum
         
-            nodes[i] = Node(coins=10,isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
+            nodes[i] = Node(coins=100,isFast=l1[i], isHighCPU=l2[i],id=i,hashingFraction=hashFrac )
 
         for i in range(self.num_nodes):
             self.p.append([])
             self.c.append([])
             for j in range(self.num_nodes):
-                self.p[i].append(np.random.uniform(10,500,1)[0])
+                self.p[i].append(np.random.uniform(10,500,1)[0]/1000)
                 if l1[i] == 1 and l1[j] == 1:
-                    self.c[i].append(100)
+                    self.c[i].append(100 *(10**6))
                 else:
-                    self.c[i].append(5)
+                    self.c[i].append(5 *(10**6))
+        
+        
 
         return nodes
     def interArrival_txndelay(self):
@@ -119,8 +121,7 @@ class Simulator:
 
         plt.figure(figsize=(8, 5))
         nx.draw(G, with_labels=True, node_color='lightgreen', edge_color='gray')
-
-        plt.show()
+        plt.savefig("network.png")
         
 
         return peers
@@ -134,8 +135,10 @@ class Simulator:
 
     def run(self):
     
+        ne = 0
         while self.time < self.max_sim_time:
             event = self.events.get()
+            ne += 1
             if self.events.qsize() == 0:
                 print("No more events")
                 break
@@ -154,6 +157,7 @@ class Simulator:
         #         print(t.id,end=', ')
         #     print()
             
+        print(ne)
         print(self.block_id)
         print(self.txn_id)
         for i in range(self.num_nodes):
@@ -162,9 +166,9 @@ class Simulator:
        
     def delay(self, message_length,sender_id,receiver_id):
         
-        dij = np.random.exponential(96/self.c[sender_id][receiver_id], 1)[0]
+        dij = np.random.exponential(96 * (10 ** 3)/self.c[sender_id][receiver_id], 1)[0]
 
-        return self.p[sender_id][receiver_id] + message_length/self.c[sender_id][receiver_id] + dij
+        return self.p[sender_id][receiver_id] + (message_length)/self.c[sender_id][receiver_id] + dij
 
         
 
