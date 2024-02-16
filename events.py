@@ -25,11 +25,13 @@ class Events:
         are ordered according to time of exectuion in events queue"""
         return self.timeOfexec < other.timeOfexec
 
+
+
 class TransactionGen(Events):
     """
     Simulates the generation of a transaction in a node
     Child class of Event
-    
+
     Attributes:
         payer_id: ID of the node which creates and executes the transaction
     """
@@ -46,20 +48,17 @@ class TransactionGen(Events):
         t = sim.interArrival_txndelay()
         sim.events.put(TransactionGen( self.timeOfexec + t, self.payer_id, self.timeOfexec))
 
-        # If payer has no coins, abort transaction
+        # # If payer has no coins, abort transaction
         if payer.coins == 0:
             return
 
         # Amount paid is chosen randomly between 1 and balance/2
         amount = random.randint(1,1+(payer.coins)//2)
 
-        # Transaction processed
-        payer.coins = payer.coins - amount
-        payee.coins = payee.coins + amount
 
         # Transaction created
         txn = Transaction(sim.txn_id,self.payer_id,payee_id,amount)
-        print(self.timeOfexec, txn)
+        print(txn)
 
         # Global transaction ID incremented
         sim.txn_id+=1
@@ -139,20 +138,30 @@ class BlockGen(Events):
         # Transactions seen by the node but not included in the longest chain
         remaining_txns = set(miner.all_transactions) - set(miner.already_in_blockchain_transactions)
 
-        if len(list(remaining_txns)) == 0:
+        valid_remaining_txns = []
+
+        # Filtering out only the valid transactions
+        for txn in remaining_txns:
+            if sim.nodes[txn.sender_id].coins >= txn.coins:
+                valid_remaining_txns.append(txn)
+                sim.nodes[txn.sender_id].coins -= txn.coins
+                sim.nodes[txn.receiver_id].coins += txn.coins
+
+
+        if len(list(valid_remaining_txns)) == 0:
             # If thre are no transactions to put in, return
             return
         
         # Create a new Block
         new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, self.prev_last_block.id, self.prev_last_block.length + 1)
-        # Adds the new transaction to the block
-        new_block.transactions = list(remaining_txns)[0: min(99, len(remaining_txns))]
+        # Add the new transactions to the block
+        new_block.transactions = list(valid_remaining_txns)[0: min(99, len(valid_remaining_txns))]
         # Node receives the mining reward
         miner.coins += 50
         # Block is added to the collection blocks the node has seen
         miner.blocks[sim.block_id] = [new_block, self.timeOfexec]
         # Newly added transaction are added to the longest chain transactions
-        miner.already_in_blockchain_transactions += remaining_txns
+        miner.already_in_blockchain_transactions += valid_remaining_txns
         
         
         print(self.timeOfexec, f"BlockID:{sim.block_id} :: {self.creator_id} mines 50 coins")
@@ -191,6 +200,11 @@ class BlockRec(Events):
             # If the parent of the recieved block is not present in the node, return
             return
         
+        # Check if all transactions in the block are valid
+        for txn in self.new_block.transactions:
+            if sim.nodes[txn.sender_id].coins < 0:
+                return
+        
         # Add the recived block to the collection of seen blocks
         cur_node.blocks[self.new_block.id] = [self.new_block, self.timeOfexec]
         
@@ -198,7 +212,7 @@ class BlockRec(Events):
         longest_chain = cur_node.calculate_longest_blockchain()
         last_block = longest_chain[0]
         
-        #TODO validate the transactions in received block
+        
 
         # Add the transactions in the new block to the list of longest chain transactions
         cur_node.already_in_blockchain_transactions += self.new_block.transactions
@@ -212,6 +226,8 @@ class BlockRec(Events):
         
         # Block generation event put in the event queue with a delay (Proof of Work delay)
         sim.events.put(BlockGen(self.timeOfexec + sim.nodes[self.exec_node_id].T_k() , self.exec_node_id , self.timeOfexec, last_block))
+
+
         
         
 

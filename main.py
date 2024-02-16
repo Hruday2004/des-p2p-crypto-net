@@ -1,15 +1,33 @@
 from simulator import Simulator
+import argparse
 
 if __name__=="__main__":
 
-    #TODO make provision for command line parsing 
+    parser = argparse.ArgumentParser(description='Process simulation parameters.')
 
-    num_nodes = 10
-    slowfrac = 0.3
-    lowCPUfrac = 0.3
-    txnDelay_meantime = 0.03
+    # Adding arguments
+    parser.add_argument('--num_nodes', type=int, required=True, help='Number of nodes')
+    parser.add_argument('--slowfrac', type=float, required=True, help='Fraction of nodes that are slow')
+    parser.add_argument('--lowCPUfrac', type=float, required=True, help='Fraction of nodes with low CPU')
+    parser.add_argument('--txnDelay_meantime', type=float, required=True, help='Mean time for transaction delay')
+    parser.add_argument('--max_sim_time', type=float, required=True, help='Maximum simulation time')
 
-    max_sim_time = 50
+    # Parsing arguments
+    args = parser.parse_args()
+
+    # Accessing the arguments
+    num_nodes = args.num_nodes
+    slowfrac = args.slowfrac
+    lowCPUfrac = args.lowCPUfrac
+    txnDelay_meantime = args.txnDelay_meantime
+    max_sim_time = args.max_sim_time
+
+    # num_nodes = 10
+    # slowfrac = 0.3
+    # lowCPUfrac = 0.3
+    # txnDelay_meantime = 0.03
+
+    # max_sim_time = 50
 
 
     sim = Simulator(num_nodes,slowfrac,lowCPUfrac,txnDelay_meantime, max_sim_time)

@@ -106,4 +106,8 @@ class Node:
 
                 # TODO: Replace with subprocess.call
                 os.system(cmd)
-                
+        file1 = f"blocks_arrival_time{self.id}.txt"
+
+        with open(os.path.join("output",file1), "w+") as fh:
+            for id,bi in self.blocks.items():
+                fh.write(f"block {id} : arrived at {bi[1]}\n")
