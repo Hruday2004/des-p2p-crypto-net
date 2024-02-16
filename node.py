@@ -68,7 +68,7 @@ class Node:
 
         :return: Value of the delay from an exponential distribution
         """
-        return np.random.exponential(3/self.hashingFraction, 1)[0]
+        return np.random.exponential(600/self.hashingFraction, 1)[0]
     
     def create_chain(self):
         

@@ -58,7 +58,7 @@ class TransactionGen(Events):
 
         # Transaction created
         txn = Transaction(sim.txn_id,self.payer_id,payee_id,amount)
-        print(txn)
+        print(self.timeOfexec, txn)
 
         # Global transaction ID incremented
         sim.txn_id+=1
@@ -155,7 +155,7 @@ class BlockGen(Events):
         # Create a new Block
         new_block = Block(sim.block_id, self.exec_node_id, self.timeOfexec, self.prev_last_block.id, self.prev_last_block.length + 1)
         # Add the new transactions to the block
-        new_block.transactions = list(valid_remaining_txns)[0: min(99, len(valid_remaining_txns))]
+        new_block.transactions = list(valid_remaining_txns)[0: min(999, len(valid_remaining_txns))]
         # Node receives the mining reward
         miner.coins += 50
         # Block is added to the collection blocks the node has seen
