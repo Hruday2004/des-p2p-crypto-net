@@ -2,6 +2,8 @@ from simulator import Simulator
 
 if __name__=="__main__":
 
+    #TODO make provision for command line parsing 
+
     num_nodes = 10
     slowfrac = 0.3
     lowCPUfrac = 0.3

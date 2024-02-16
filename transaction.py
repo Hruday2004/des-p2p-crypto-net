@@ -4,8 +4,9 @@ class Transaction:
         self.id = id
         self.sender_id = sender_id
         self.receiver_id = receiver_id
+        # Amount involved in transaction
         self.coins = coins
-
+        # Block which contains this transaction
         self.block_id = None
 
         

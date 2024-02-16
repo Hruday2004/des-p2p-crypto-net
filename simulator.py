@@ -7,20 +7,32 @@ from events import *
 import matplotlib.pyplot as plt
 
 class Simulator:
+    """ 
+    Simulator
+    
+    Attributes:
+    num_nodes: Number of nodes in the network
+    slowfrac: Fraction of nodes which have slow transmission
+    lowCPUfrac: Fraction of nodes having low hashing power
+    txnDelay_meantime: Mean for transaction delay exponential distribution
+    max_sim_time: Maximum simulation time for simulator
+    
+    """
     def __init__(self, num_nodes, slowfrac, lowCPUfrac, txnDelay_meantime, max_sim_time):
 
         self.txnDelay_meantime = txnDelay_meantime
         self.num_nodes = num_nodes
-        self.block_id = 1
-        self.txn_id = 1
+        self.block_id = 1 # initial BlockID
+        self.txn_id = 1 # initial TxnID
 
         self.p = []
         self.c = []
 
-        self.time = 0
+
+        self.time = 0    # keeps track of time in the simulator    
         self.max_sim_time = max_sim_time
 
-        self.events = PriorityQueue()
+        self.events = PriorityQueue() # Priority Queue to store the events in the ascending order of executuion time
 
         
         self.nodes = self.create_nodes(slowfrac,lowCPUfrac)
@@ -31,7 +43,13 @@ class Simulator:
 
     def __str__(self):
         pass
-    def create_nodes(self, slowfrac, lowCPUfrac):
+    def create_nodes(self, slowfrac, lowCPUfrac): 
+        """ Creates the nodes in the Simulator
+
+        :param slowfrac: Fraction of nodes which have slow transmission
+        :param lowCPUfrac: Fraction of nodes having low hashing power
+        :return : A list of nodes
+        """
 
         slownodes = int(slowfrac * self.num_nodes)
         lowCPUnodes = int(lowCPUfrac * self.num_nodes)
@@ -39,10 +57,11 @@ class Simulator:
         l1 = [1]*int(self.num_nodes-slownodes) + [0]*slownodes
         l2 = [1]*int(self.num_nodes-lowCPUnodes) + [0]*lowCPUnodes
 
-        hashingSum = (self.num_nodes-lowCPUnodes)*10 + lowCPUnodes
+        # Sum of hashing power of all the nodes
+        hashingSum = (self.num_nodes-lowCPUnodes)*10 + lowCPUnodes 
 
 
-        random.shuffle(l1)
+        random.shuffle(l1)  
         random.shuffle(l2)
 
         nodes = {}
@@ -58,27 +77,41 @@ class Simulator:
             self.p.append([])
             self.c.append([])
             for j in range(self.num_nodes):
-                self.p[i].append(np.random.uniform(10,500,1)[0]/1000)
-                if l1[i] == 1 and l1[j] == 1:
+                # Speed of light propagation for node pair (i,j)
+                self.p[i].append(np.random.uniform(10,500,1)[0]/1000) 
+                
+                # Link speed for node pair (i,j)
+                if l1[i] == 1 and l1[j] == 1:                         
+                    # Set 100Mbps if both nodes are fast
                     self.c[i].append(100 *(10**6))
-                else:
+                else:                   
+                    # Set to 5 Mbps if atleast one is slow
                     self.c[i].append(5 *(10**6))
         
         
 
         return nodes
     def interArrival_txndelay(self):
+        """
+        To get the value of inter arrival transaction delay from an exponential distribution
+
+        :return: Value of inter arrival transaction delay
+        """
         return np.random.exponential(self.txnDelay_meantime, 1)[0]
     
     def create_constrained_graph(self,num_peers):
-        """Creates a graph ensuring each node has 3 to 6 connections."""
+        """Creates a graph ensuring each node has 3 to 6 connections.
+        
+           :param num_peers: The number of nodes in the network
+           :return: A Graph object 'G' which is the required graph
+        """
         G = nx.Graph()
         G.add_nodes_from(range(num_peers))
         
         # Initialize all nodes with an empty list of connections
         connections = {i: [] for i in range(num_peers)}
         
-        # Queue to manage nodes needing more connections
+        # List to manage nodes needing more connections
         needs_connection = list(range(num_peers))
         
         while needs_connection:
@@ -96,6 +129,7 @@ class Simulator:
                 possible_connections.remove(connect_to)
         
             if len(connections[peer]) < 3:
+                # If number of connections are less than 3, it is put back into the list
                 needs_connection.append(peer)
         
         return G
@@ -115,6 +149,7 @@ class Simulator:
     
     def create_peers(self, num_nodes):
         G = self.create_and_check_constrained_graph(num_nodes)
+        # peers stores the node to neighbour mapping, where key is the node and value is a list of neighbours
         peers = {}
         for node in G.nodes():
             peers[node] = list(G.neighbors(node))
@@ -127,13 +162,21 @@ class Simulator:
         return peers
           
     def initial_events(self):
+        """
+        Puts initial events in the events queue
+        """
         for i in range(self.num_nodes):
+            # Initial transactions
             self.events.put(TransactionGen(self.interArrival_txndelay(), i,0))
         
         for i in range(self.num_nodes):
+            # Initial Block generation events
             self.events.put(BlockGen(self.nodes[i].T_k(),i,0,self.nodes[i].blocks[0][0]))
 
     def run(self):
+        """
+        Executes the events in the Queue till time elapsed is less than max simulation time
+        """
     
         ne = 0
         while self.time < self.max_sim_time:
@@ -144,30 +187,23 @@ class Simulator:
                 break
             self.time = event.timeOfexec
             event.execute(self)
-
-
-            # print("Time: ",self.time)
-
-        # for i in range(self.num_nodes):
-        #     self.nodes[i].create_chain()
-        # for i in range(self.num_nodes):
-        #     print("Balannce: ", self.nodes[i].coins)
-        #     print(i," : ",end="")
-        #     for t in self.nodes[i].already_in_blockchain_transactions:
-        #         print(t.id,end=', ')
-        #     print()
-            
-        print(ne)
-        print(self.block_id)
-        print(self.txn_id)
+       
+        # Creates a Blockchain graph for each node in the network
         for i in range(self.num_nodes):
             self.nodes[i].create_chain()
         
        
     def delay(self, message_length,sender_id,receiver_id):
-        
-        dij = np.random.exponential(96 * (10 ** 3)/self.c[sender_id][receiver_id], 1)[0]
+        """
+        :param message_length: Size of the message to be transmitted in bits
+        :param sender_id: Sender node ID
+        :param receiver_id: Receiver node ID
+        :return: Delay associcated with the given transmission """
 
+        # Queueing Delay
+        dij = np.random.exponential(96 * (10 ** 3)/self.c[sender_id][receiver_id], 1)[0] 
+
+        # delay = pij + |m|/cij + dij
         return self.p[sender_id][receiver_id] + (message_length)/self.c[sender_id][receiver_id] + dij
 
         

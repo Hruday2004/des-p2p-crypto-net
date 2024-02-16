@@ -13,36 +13,38 @@ class Node:
         self.coins = coins
         self.isFast = isFast
         self.isHighCPU = isHighCPU
+        # All transactions seen by the node
         self.all_transactions   = []
         self.hashingFraction = hashingFraction
-        
+        # All transaction present in the longest chain
         self.already_in_blockchain_transactions = []
-        
+        # Collection of blocks seen by the node (initialized with a genesis block)
         self.blocks = {
             0 : [Block(0, 0, 0, -1, 0), 0],
         }
         
-        print("Hashing:",self.hashingFraction)
-        
         
     def calculate_longest_blockchain(self):
+        """
+        Calculates the longest chain in the node
 
+        :return: List containing the blocks in the longest chain"""
         
         max_length = 0
         block_id = 0
             
         for id, block in self.blocks.items():
-            
+            # Go through all the blocks seen and get the block with max length
             length = block[0].length
-            # if length != 0 and length == max_length and id != block_id:
-            #     print("Same Length Block found")
             if length > max_length:
                 max_length = length
                 block_id = id
-                
+
+        # Creation time of the block with max length  
         earliest_block_time = self.blocks[block_id][1]
         
         for _, blk in self.blocks.items():
+            # Checks if there is block with the same length but an earlier creation time
             if blk[0].length == max_length and blk[0].id != block_id and blk[1] < earliest_block_time:
                 earliest_block_time = blk[1]
                 block_id = blk[0].id
@@ -54,12 +56,18 @@ class Node:
         block_id = self.blocks[block_id][0].prev_block_id
         
         while block_id != -1:
+            # Create the list of longest chain
             long_chain.append(self.blocks[block_id][0])
             block_id = self.blocks[block_id][0].prev_block_id
             
         return long_chain
     
     def T_k(self):
+        """
+        Simulates the delay in Proof of Work mining
+
+        :return: Value of the delay from an exponential distribution
+        """
         return np.random.exponential(3/self.hashingFraction, 1)[0]
     
     def create_chain(self):
@@ -99,20 +107,3 @@ class Node:
                 # TODO: Replace with subprocess.call
                 os.system(cmd)
                 
-        # file1 = f"blocks_arrival_time{self.id}.txt"
-        
-        # with open(os.path.join("output", file1), "w+") as fh:
-        #     for id, bi  in self.blocks.items():
-        #         fh.write(f"{id} : {bi[1]} created by {bi[0].node_id}\n")
-                
-                
-        
-        
-        
-        
-                
-                
-
-            
-        
-        
