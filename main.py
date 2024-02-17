@@ -22,14 +22,6 @@ if __name__=="__main__":
     txnDelay_meantime = args.txnDelay_meantime
     max_sim_time = args.max_sim_time
 
-    # num_nodes = 10
-    # slowfrac = 0.3
-    # lowCPUfrac = 0.3
-    # txnDelay_meantime = 3
-
-    # max_sim_time = 6000
-
-
     sim = Simulator(num_nodes,slowfrac,lowCPUfrac,txnDelay_meantime, max_sim_time)
 
     sim.run()
